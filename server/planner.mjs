@@ -1,7 +1,16 @@
 // Optional on-device conversational layer. The model has no tools, tokens or payment authority.
+export function validatePlannerInput(message, state, model) {
+  if (typeof message !== 'string' || !message.trim() || message.length > 1200) return false;
+  if (typeof model !== 'string' || !/^[a-zA-Z0-9_.:\/-]{1,100}$/.test(model)) return false;
+  if (!state?.charter || typeof state.charter.mode !== 'string' || typeof state.charter.routine !== 'string') return false;
+  return state.charter.mode.length <= 100 && state.charter.routine.length <= 200 &&
+    Number.isSafeInteger(state.charter.fallbackMinutes) &&
+    state.charter.fallbackMinutes >= 0 && state.charter.fallbackMinutes <= 1440;
+}
+
 export async function conversationalReply(message, state) {
   const model = process.env.OLLAMA_MODEL?.trim();
-  if (!model) return null;
+  if (!validatePlannerInput(message, state, model)) return null;
   try {
     const response = await fetch('http://127.0.0.1:11434/api/chat', {
       method: 'POST', signal: AbortSignal.timeout(12000),
